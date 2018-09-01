@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { ObjectId } = require('mongodb');
 const _ = require('lodash');
+const bcrypt = require('bcryptjs');
 
 const { mongoose } = require('./db/mongoose');
 const { Todo } = require('./models/todo');
@@ -114,6 +115,38 @@ app.post('/users', (req, res) => {
 
 app.get('/users/me', authenticate, (req, res) => {
 	res.send(req.user);
+});
+
+app.post('/users/login', (req, res) => {
+	const body = _.pick(req.body, ['email', 'password']);
+
+	User.findByCredentials(body.email, body.password).then((user) => {
+		//return res.send(user);
+		return user.generateAuthToken().then((token) => {
+			res.header('x-auth', token).send(user);
+		}).catch((e) => {
+			res.status(400).send(e);
+		});
+	}).catch((e) => {
+		res.status(400).send();
+	});
+	// User.findOne({email: body.email}).then((user) => {
+	// 	if (user) {
+	// 		let hashedPassword = user.password;
+	// 		return bcrypt.compare(body.password, hashedPassword, (err, result) => {
+	// 			if (err) {
+	// 				return res.status(400).send({
+	// 					msg: 'Wrong Password!'
+	// 				});
+	// 			}
+	// 			if (result) {
+	// 				return res.send(user);
+	// 			}
+	// 			return res.status(400).send();
+	// 		});
+	// 	}
+	// 	return res.status(400).send();
+	// });
 });
 
 app.listen(port, () => {
